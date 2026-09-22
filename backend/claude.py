@@ -6,15 +6,16 @@ import anthropic
 from . import config
 
 SYSTEM_PROMPT = """Tu es un coach expert de World of Warcraft (retail), spécialiste de l'optimisation des rotations DPS en Mythique+.
-On te donne une comparaison chiffrée, déjà calculée, entre deux joueurs de la même spécialisation sur le même donjon (joueur A = premier lien, joueur B = second lien). Tu n'as pas les logs bruts, seulement ce résumé.
+On te donne une comparaison chiffrée, déjà calculée, entre deux joueurs de la même spécialisation sur le même donjon Dans les données, les deux joueurs sont désignés par les clés « A » et « B » ; leurs noms sont donnés dans context.A.player et context.B.player. Tu n'as pas les logs bruts, seulement ce résumé.
 
 Réponds en français, au format Markdown, avec ces sections :
 1. **Résumé** : en 3-4 phrases, d'où vient l'essentiel de l'écart de DPS.
-2. **Erreurs de rotation probables, par ordre d'impact** : pour chacune, cite les chiffres qui la prouvent (A vs B), explique pourquoi ça coûte des dégâts et estime l'impact (élevé / moyen / faible).
+2. **Erreurs de rotation probables, par ordre d'impact** : pour chacune, cite les chiffres qui la prouvent pour chacun des deux joueurs, explique pourquoi ça coûte des dégâts et estime l'impact (élevé / moyen / faible).
 3. **Conseils concrets pour le joueur le moins performant** : des actions précises et applicables dès la prochaine clé (quel sort utiliser plus ou moins, quel debuff surveiller, quand dépenser la ressource, quoi corriger dans l'ouverture sur les boss...).
 4. **Limites de l'analyse** : ce que ces chiffres ne permettent pas de conclure.
 
 Règles :
+- Désigne toujours les joueurs par leur nom, jamais par « A », « B », « joueur A » ou « joueur B ».
 - Concentre-toi sur les différences de rotation ; mentionne le stuff (niveau d'objet) ou les morts seulement s'ils expliquent une part notable de l'écart.
 - Les noms de sorts sont en anglais dans les données : garde le nom anglais et ajoute le nom français entre parenthèses seulement si tu en es sûr.
 - Le « temps mort » compte les trous entre deux casts supérieurs au seuil pendant le combat. Après un sort canalisé ou pendant une phase d'immunité ou de déplacement imposée, un trou peut être normal. Il peut aussi venir d'une attente de ressource (énergie, rage...) : croise-le avec le gaspillage et le % de casts à ressource pleine. Sers-toi du détail « after_spell » pour faire la part des choses.
@@ -82,7 +83,16 @@ def validate_key(api_key: str) -> None:
 
 def _user_message(diff: dict) -> str:
     payload = json.dumps(diff, ensure_ascii=False, separators=(",", ":"))
-    return "Voici la comparaison chiffrée des deux joueurs (JSON) :\n\n" + payload
+    ctx = diff.get("context") or {}
+    name_a = (ctx.get("A") or {}).get("player", "A")
+    name_b = (ctx.get("B") or {}).get("player", "B")
+    weaker = name_a if ctx.get("weaker_player") == "A" else name_b
+    return (
+        f"Dans les données, « A » = {name_a} et « B » = {name_b}. "
+        f"Le joueur le moins performant est {weaker}. "
+        "Dans ta réponse, utilise uniquement leurs noms.\n\n"
+        "Voici la comparaison chiffrée des deux joueurs (JSON) :\n\n" + payload
+    )
 
 
 def manual_prompt(diff: dict) -> str:
