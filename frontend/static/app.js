@@ -238,7 +238,9 @@ function renderResults(d) {
     warnings.map((w) => `<div class="alert warn" style="width:100%">${esc(w)}</div>`).join("");
 
   // Métriques clés
-  table($("#headline-table"), ["Métrique", `<span class="col-a">${esc(c.A.player)}</span>`, `<span class="col-b">${esc(c.B.player)}</span>`, "Écart (B − A)"],
+  const nA = `<span class="col-a">${esc(c.A.player)}</span>`;
+  const nB = `<span class="col-b">${esc(c.B.player)}</span>`;
+  table($("#headline-table"), ["Métrique", nA, nB, "Écart (B − A)"],
     d.headline.map((h) => {
       const cellA = `<td class="num ${h.better === "A" ? "better" : ""}">${fmt(h.a, h.unit)}</td>`;
       const cellB = `<td class="num ${h.better === "B" ? "better" : ""}">${fmt(h.b, h.unit)}</td>`;
@@ -253,7 +255,7 @@ function renderResults(d) {
     `<td class="num col-a">${fmt(r.a_per_min)}</td><td class="num col-b">${fmt(r.b_per_min)}</td>` +
     `<td class="num">${signed(r.diff_per_min, "", null)}</td>` +
     `<td class="num">${r.rel_pct === null ? '<span class="muted">nouveau</span>' : fmt(r.rel_pct, "%")}</td></tr>`);
-  const head = ["Sort", "Casts A", "Casts B", "/min A", "/min B", "Écart /min", "Écart %"];
+  const head = ["Sort", `Casts ${nA}`, `Casts ${nB}`, `/min ${nA}`, `/min ${nB}`, "Écart /min", "Écart %"];
   const showAbilities = (all) => table($("#abilities-table"), head, all ? abilityRows : abilityRows.slice(0, 15));
   showAbilities(false);
   const more = $("#abilities-more");
@@ -266,13 +268,13 @@ function renderResults(d) {
   };
 
   // Debuffs
-  table($("#debuffs-table"), ["Debuff", "A", "B", "Écart", "Applic. A/B"],
+  table($("#debuffs-table"), ["Debuff", nA, nB, "Écart", `Applic. ${nA} / ${nB}`],
     d.debuffs.map((r) => `<tr><td>${esc(r.name)}</td><td class="num col-a">${fmt(r.a_uptime, "%")}</td>` +
       `<td class="num col-b">${fmt(r.b_uptime, "%")}</td><td class="num">${r.a_uptime === null || r.b_uptime === null ? "–" : signed(r.diff, "%")}</td>` +
       `<td class="num muted">${r.a_applications} / ${r.b_applications}</td></tr>`));
 
   // Ressources
-  table($("#resources-table"), ["Ressource", "Gaspillé A", "Gaspillé B", "% gaspi A/B", "Casts ressource pleine A/B"],
+  table($("#resources-table"), ["Ressource", `Gaspillé ${nA}`, `Gaspillé ${nB}`, `% gaspi ${nA} / ${nB}`, `Casts ressource pleine ${nA} / ${nB}`],
     d.resources.map((r) => `<tr><td>${esc(r.resource)}</td>` +
       `<td class="num col-a">${fmt(r.a_wasted)}</td><td class="num col-b">${fmt(r.b_wasted)}</td>` +
       `<td class="num">${fmt(r.a_waste_pct, "%")} / ${fmt(r.b_waste_pct, "%")}</td>` +
@@ -291,7 +293,7 @@ function renderResults(d) {
     `<div class="side-by-side">${gapCol("A")}${gapCol("B")}</div>`;
 
   // Dégâts
-  table($("#damage-table"), ["Sort", "% A", "% B", "Écart"],
+  table($("#damage-table"), ["Sort", `% ${nA}`, `% ${nB}`, "Écart"],
     d.damage_breakdown.map((r) => `<tr><td>${esc(r.name)}</td><td class="num col-a">${fmt(r.a_share, "%")}</td>` +
       `<td class="num col-b">${fmt(r.b_share, "%")}</td><td class="num">${signed(r.diff, "%", null)}</td></tr>`));
 
@@ -308,7 +310,7 @@ function renderResults(d) {
     `<div><h3><span class="tag tag-b">B</span></h3>${seq(d.first_pull_opener.B)}</div></div></div>`;
 
   // Buffs
-  table($("#buffs-table"), ["Buff", "Uptime A", "Uptime B", "Écart"],
+  table($("#buffs-table"), ["Buff", `Uptime ${nA}`, `Uptime ${nB}`, "Écart"],
     d.buffs.map((r) => `<tr><td>${esc(r.name)}</td><td class="num col-a">${fmt(r.a_uptime, "%")}</td>` +
       `<td class="num col-b">${fmt(r.b_uptime, "%")}</td><td class="num">${signed(r.diff, "%", null)}</td></tr>`));
 
