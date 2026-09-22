@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WoW Analyser</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/marked@15/marked.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js" defer></script>
+  <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="logo">⚔</span>
+    <div>
+      <h1>WoW Analyser</h1>
+      <p class="subtitle">Compare la rotation de deux joueurs de même spé sur une clé Mythique+</p>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <span id="wcl-usage" class="chip" title="Requêtes Warcraft Logs envoyées dans la dernière heure">WCL : –</span>
+    <button id="open-config" class="btn ghost" type="button">Clé Anthropic</button>
+  </div>
+</header>
+
+<main>
+  <div id="global-alert" class="alert error hidden"></div>
+
+  <!-- Étape 1 : liens -->
+  <section class="card">
+    <h2><span class="step">1</span> Liens Warcraft Logs</h2>
+    <form id="links-form" class="links">
+      <label>
+        <span class="tag tag-a">Joueur A</span>
+        <input id="url-a" type="url" required placeholder="https://fr.warcraftlogs.com/reports/XXXXXXXXXXXXXXXX?fight=4">
+      </label>
+      <label>
+        <span class="tag tag-b">Joueur B</span>
+        <input id="url-b" type="url" required placeholder="https://fr.warcraftlogs.com/reports/XXXXXXXXXXXXXXXX?fight=6">
+      </label>
+      <div class="actions">
+        <button id="load-btn" class="btn primary" type="submit">Charger les rapports</button>
+      </div>
+    </form>
+  </section>
+
+  <!-- Étape 2 : sélection -->
+  <section id="select-card" class="card hidden">
+    <h2><span class="step">2</span> Clé et joueur à comparer</h2>
+    <div class="pickers">
+      <div class="picker" data-side="a">
+        <div class="picker-title"><span class="tag tag-a">A</span> <span class="report-title"></span></div>
+        <label>Clé<select class="fight-select"></select></label>
+        <label>Joueur<select class="player-select"></select></label>
+      </div>
+      <div class="picker" data-side="b">
+        <div class="picker-title"><span class="tag tag-b">B</span> <span class="report-title"></span></div>
+        <label>Clé<select class="fight-select"></select></label>
+        <label>Joueur<select class="player-select"></select></label>
+      </div>
+    </div>
+    <div id="match-alert" class="alert warn hidden"></div>
+    <div class="options">
+      <label class="inline">
+        Seuil de temps mort
+        <input id="gap-threshold" type="number" min="0.5" max="10" step="0.1" value="1.5"> s
+      </label>
+      <span class="hint">Un trou entre deux sorts plus long que ce seuil, en plein combat, compte comme du temps mort.</span>
+    </div>
+    <div class="actions">
+      <button id="analyze-btn" class="btn primary" type="button">Analyser</button>
+    </div>
+  </section>
+
+  <!-- Progression -->
+  <section id="progress-card" class="card hidden">
+    <div class="progress"><div id="progress-bar" class="progress-bar"></div></div>
+    <p id="progress-msg" class="muted">…</p>
+  </section>
+
+  <!-- Résultats -->
+  <section id="results" class="hidden">
+    <div id="context" class="card context"></div>
+
+    <section class="card">
+      <h2>Métriques clés</h2>
+      <div class="table-wrap"><table id="headline-table" class="grid"></table></div>
+    </section>
+
+    <section class="card">
+      <h2>Analyse de Claude</h2>
+      <div id="ai-box"></div>
+    </section>
+
+    <section class="card">
+      <h2>Fréquence d'utilisation des sorts <span class="muted small">(casts par minute en combat)</span></h2>
+      <div class="table-wrap"><table id="abilities-table" class="grid"></table></div>
+      <button id="abilities-more" class="btn ghost small hidden" type="button">Tout afficher</button>
+    </section>
+
+    <div class="two-col">
+      <section class="card">
+        <h2>Uptime des debuffs / DoTs</h2>
+        <p class="muted small">% du temps actif sur les cibles touchées par ce debuff.</p>
+        <div class="table-wrap"><table id="debuffs-table" class="grid"></table></div>
+      </section>
+      <section class="card">
+        <h2>Ressources</h2>
+        <p class="muted small">Gaspillage = ressource générée au-delà du maximum.</p>
+        <div class="table-wrap"><table id="resources-table" class="grid"></table></div>
+      </section>
+    </div>
+
+    <div class="two-col">
+      <section class="card">
+        <h2>Temps mort</h2>
+        <div id="gaps-box"></div>
+      </section>
+      <section class="card">
+        <h2>Répartition des dégâts</h2>
+        <div class="table-wrap"><table id="damage-table" class="grid"></table></div>
+      </section>
+    </div>
+
+    <section class="card">
+      <h2>Boss : ouverture et rythme</h2>
+      <div id="bosses-box"></div>
+    </section>
+
+    <section class="card">
+      <h2>Uptime des buffs personnels</h2>
+      <div class="table-wrap"><table id="buffs-table" class="grid"></table></div>
+    </section>
+  </section>
+</main>
+
+<!-- Configuration Anthropic -->
+<div id="config-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="config-title">
+  <div class="modal-card">
+    <button id="close-config" class="close" type="button" aria-label="Fermer">×</button>
+    <h2 id="config-title">Configurer la clé API Anthropic</h2>
+    <p>L'analyse texte est générée par Claude via l'API Anthropic. Pour obtenir une clé :</p>
+    <ol class="steps">
+      <li>Va sur <a href="https://console.anthropic.com" target="_blank" rel="noopener">console.anthropic.com</a> et crée un compte.</li>
+      <li>Ouvre <strong>Settings</strong>, puis <strong>API Keys</strong>.</li>
+      <li>Clique sur <strong>Create Key</strong>, donne-lui un nom (par ex. « wowanalyser ») et copie-la.</li>
+      <li>Ajoute des crédits dans <strong>Settings › Billing</strong> si nécessaire : l'API n'est pas gratuite au-delà d'un petit crédit d'essai. Une analyse coûte généralement quelques centimes.</li>
+      <li>Colle la clé ci-dessous. Elle est enregistrée uniquement dans le fichier <code>.env</code> de ton PC et n'est envoyée qu'à l'API Anthropic.</li>
+    </ol>
+    <form id="config-form" class="config-form">
+      <input id="anthropic-key" type="password" autocomplete="off" placeholder="sk-ant-..." required>
+      <button class="btn primary" type="submit">Enregistrer</button>
+    </form>
+    <p id="config-msg" class="small"></p>
+    <p class="muted small">Modèle utilisé : <code id="model-name">–</code> (modifiable via <code>ANTHROPIC_MODEL</code> dans le <code>.env</code>).</p>
+  </div>
+</div>
+</body>
+</html>
