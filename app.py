@@ -116,5 +116,13 @@ def ai_analysis():
         return error(str(exc), exc.status, exc.code)
 
 
+@app.post("/api/ai/prompt")
+def ai_manual_prompt():
+    body = json_body()
+    if body is None or not isinstance(body.get("diff"), dict):
+        return error("Requête invalide.")
+    return jsonify({"text": claude.manual_prompt(body["diff"])})
+
+
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=5000, debug=False)

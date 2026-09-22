@@ -80,19 +80,25 @@ def validate_key(api_key: str) -> None:
         raise _translate_error(exc)
 
 
+def _user_message(diff: dict) -> str:
+    payload = json.dumps(diff, ensure_ascii=False, separators=(",", ":"))
+    return "Voici la comparaison chiffrée des deux joueurs (JSON) :\n\n" + payload
+
+
+def manual_prompt(diff: dict) -> str:
+    """Texte à coller tel quel dans une conversation claude.ai (sans clé API)."""
+    return SYSTEM_PROMPT + "\n\n---\n\n" + _user_message(diff)
+
+
 def analyze(diff: dict) -> dict:
     client = _client()
-    payload = json.dumps(diff, ensure_ascii=False, separators=(",", ":"))
     try:
         response = client.messages.create(
             model=config.anthropic_model(),
             max_tokens=16000,
             system=SYSTEM_PROMPT,
             output_config={"effort": "medium"},
-            messages=[{
-                "role": "user",
-                "content": "Voici la comparaison chiffrée des deux joueurs (JSON) :\n\n" + payload,
-            }],
+            messages=[{"role": "user", "content": _user_message(diff)}],
         )
     except anthropic.APIError as exc:
         raise _translate_error(exc)

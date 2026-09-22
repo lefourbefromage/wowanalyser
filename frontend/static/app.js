@@ -312,6 +312,8 @@ function renderResults(d) {
     d.buffs.map((r) => `<tr><td>${esc(r.name)}</td><td class="num col-a">${fmt(r.a_uptime, "%")}</td>` +
       `<td class="num col-b">${fmt(r.b_uptime, "%")}</td><td class="num">${signed(r.diff, "%", null)}</td></tr>`));
 
+  $("#copy-msg").className = "small muted";
+  $("#copy-msg").innerHTML = 'Sans clé API : copie le résumé, puis colle-le dans une nouvelle conversation sur <a href="https://claude.ai/new" target="_blank" rel="noopener">claude.ai</a>.';
   $("#results").classList.remove("hidden");
   $("#context").scrollIntoView({ behavior: "smooth" });
 }
@@ -348,5 +350,38 @@ async function runAi() {
   }
   $("#ai-retry")?.addEventListener("click", (e) => { e.preventDefault(); runAi(); });
 }
+
+// ------------------------------------------------------------------ copie manuelle pour claude.ai
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    // Repli si l'API presse-papiers est refusée par le navigateur.
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand("copy");
+    ta.remove();
+    return ok;
+  }
+}
+
+$("#copy-prompt").addEventListener("click", async () => {
+  const msg = $("#copy-msg");
+  if (!state.diff) return;
+  try {
+    const { text } = await api("/api/ai/prompt", { diff: state.diff });
+    if (!(await copyText(text))) throw new Error("Le navigateur a refusé l'accès au presse-papiers.");
+    msg.className = "small better";
+    msg.innerHTML = 'Copié ✔ Ouvre <a href="https://claude.ai/new" target="_blank" rel="noopener">claude.ai</a>, colle (Ctrl+V) dans une nouvelle conversation et envoie.';
+  } catch (err) {
+    msg.className = "small worse";
+    msg.textContent = err.message;
+  }
+});
 
 refreshConfig();

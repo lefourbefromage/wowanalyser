@@ -14,6 +14,7 @@ Application web locale qui compare la rotation DPS de deux joueurs de même spé
    - le **gaspillage de ressources** (`waste` des events `resourcechange`) et le % de sorts lancés avec la ressource au maximum ;
    - la répartition des dégâts, l'uptime des buffs personnels, l'ouverture et le rythme sur chaque boss, et les enchaînements de sorts les plus fréquents.
 4. Le diff chiffré (pas les events bruts) est envoyé à Claude, qui rédige l'analyse en français.
+   **Sans clé API** : le bouton « Copier pour Claude.ai » copie les instructions et le résumé chiffré. Colle-les dans une nouvelle conversation sur [claude.ai](https://claude.ai) (compte gratuit ou abonnement) pour obtenir la même analyse, sans payer l'API.
 
 ## Installation
 
